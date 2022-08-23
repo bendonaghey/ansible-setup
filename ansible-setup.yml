@@ -1,0 +1,132 @@
+---
+- name: Install Ubuntu Packages
+  hosts: localhost
+  vars:
+    brew_cask_packages:
+      - visual-studio-code
+    brew_packages:
+      - awscli
+      - zsh
+      - kubectl
+
+  pre_tasks:
+    - name: Install curl
+      apt:
+        name: curl
+        state: present
+      become: yes
+
+    - name: Install Git
+      shell: yes | sudo apt install git-all
+      become: yes
+
+    - name: Download Terraform 1.2.6
+      get_url:
+        url: https://releases.hashicorp.com/terraform/1.2.6/terraform_1.2.6_linux_amd64.zip
+        dest: /usr/local/bin
+      become: yes
+
+    - name: Download Terragrunt 0.38.7
+      get_url:
+        url: https://github.com/gruntwork-io/terragrunt/releases/download/v0.38.7/terragrunt_linux_386
+        dest: /usr/local/bin
+      become: yes
+  
+    - name: Download Helm 3.6.3
+      get_url:
+        url: https://get.helm.sh/helm-v3.6.3-linux-amd64.tar.gz
+        dest: /usr/local/bin
+      become: yes
+
+    - name: Create Terraform root directory MAC ONLY
+      file:
+        path: /.terraform
+        owner: root
+        group: root
+        mode: 0755
+        state: directory
+      become: yes
+
+    - name: Create Brew root directory MAC ONLY
+      file:
+        path: /usr/local/bin/brew
+        owner: root
+        group: root
+        mode: 0755
+        state: directory
+      become: yes
+
+    - name: Unzip Terraform 1.2.6
+      unarchive:
+        src: /usr/local/bin/terraform_1.2.6_linux_amd64.zip
+        dest: /usr/local/bin
+      become: yes
+    
+    - name: Unzip Helm 3.6.3
+      unarchive:
+        src: /usr/local/bin/helm-v3.6.3-linux-amd64.tar.gz
+        dest: /usr/local/bin
+      become: yes
+        
+    - name: Install Terraform 1.2.6
+      shell: |
+        cd /usr/local/bin
+        chmod u+x terraform
+      become: yes
+
+    - name: Install Terragrunt 0.38.7 FIX
+      shell: |
+        cd /usr/local/bin
+        mv terragrunt_linux_386 /usr/local/bin/terragrunt
+        chmod u+x terragrunt
+      become: yes
+
+    - name: Install Helm 3.6.3
+      shell: |
+        cd /usr/local/bin/linux-amd64
+        chmod u+x helm
+        mv helm /usr/local/bin/helm
+      become: yes
+
+    # - name: Install Homebrew
+    #   shell: |
+    #     sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    #   become: yes
+
+    - name: Download Homebrew installation script
+      get_url:
+        url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+        dest: /tmp/install.sh
+
+    - name: Install Homebrew
+      shell: |
+        cd /tmp
+        bin/bash install.sh
+      become: yes
+
+
+
+
+
+
+    # - name: Set up homebrew core
+    #   shell: git -C $(brew --repository homebrew/core) checkout master
+    #   become: yes
+
+  tasks:
+    - name: Updating Homebrew
+      homebrew:
+        update_homebrew: true
+
+    - name: Installing Homebrew Packages
+      homebrew:
+        name: "{{ brew_packages }}"
+        state: present
+      register: result
+      until: result is successful
+
+    # Casks no longer working RIP
+    # - name: Installing Homebrew Cask Packages
+    #   homebrew_cask:
+    #     name: visual-studio-code
+    #     state: present
